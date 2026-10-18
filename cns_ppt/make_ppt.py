@@ -17,7 +17,10 @@ OUT = ROOT / "CNS_20261015_生物医学文献汇报.pptx"
 
 # 16:9
 W, H = Inches(13.333), Inches(7.5)
-FONT = "WenQuanYi Micro Hei"
+# 中文用微软雅黑，西文用 Calibri（Office / WPS 默认学术汇报字体）
+FONT_EA = "微软雅黑"
+FONT_LATIN = "Calibri"
+FONT = FONT_EA
 
 NAVY = RGBColor(0x14, 0x2B, 0x45)
 NAVY2 = RGBColor(0x1E, 0x4A, 0x6E)
@@ -35,22 +38,29 @@ GREEN = RGBColor(0x1F, 0x7A, 0x4D)
 JOURNAL_COLOR = {"Cell": CELL, "Nature": NATURE, "Science": SCIENCE}
 
 
-def set_run_font(run, size, bold=False, color=INK, name=FONT):
+def set_run_font(run, size, bold=False, color=INK, name=None):
+    latin_name = FONT_LATIN
+    ea_name = FONT_EA
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.color.rgb = color
-    run.font.name = name
+    run.font.name = latin_name
     rPr = run._r.get_or_add_rPr()
+    latin = rPr.find(qn("a:latin"))
+    if latin is None:
+        latin = rPr.makeelement(qn("a:latin"), {})
+        rPr.append(latin)
+    latin.set("typeface", latin_name)
     ea = rPr.find(qn("a:ea"))
     if ea is None:
         ea = rPr.makeelement(qn("a:ea"), {})
         rPr.append(ea)
-    ea.set("typeface", name)
+    ea.set("typeface", ea_name)
     cs = rPr.find(qn("a:cs"))
     if cs is None:
         cs = rPr.makeelement(qn("a:cs"), {})
         rPr.append(cs)
-    cs.set("typeface", name)
+    cs.set("typeface", latin_name)
 
 
 def add_textbox(slide, l, t, w, h, text, size=14, bold=False, color=INK, align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP):
@@ -116,11 +126,12 @@ def make_dendrite_schematic(path: Path):
     Wpx, Hpx = 1600, 1100
     img = Image.new("RGB", (Wpx, Hpx), (255, 255, 255))
     d = ImageDraw.Draw(img)
-    font_path = "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"
-    f_title = ImageFont.truetype(font_path, 42)
-    f_h = ImageFont.truetype(font_path, 30)
-    f_b = ImageFont.truetype(font_path, 24)
-    f_s = ImageFont.truetype(font_path, 20)
+    font_reg = str(ROOT / "fonts" / "NotoSansSC-400.ttf")
+    font_bd = str(ROOT / "fonts" / "NotoSansSC-700.ttf")
+    f_title = ImageFont.truetype(font_bd, 40)
+    f_h = ImageFont.truetype(font_bd, 28)
+    f_b = ImageFont.truetype(font_reg, 24)
+    f_s = ImageFont.truetype(font_reg, 20)
 
     d.rounded_rectangle([40, 30, 1560, 100], 12, fill=(0, 61, 122))
     d.text((60, 48), "同一 L5 ET 神经元内：树突编码规则，胞体编码感觉", font=f_title, fill="white")
@@ -250,7 +261,7 @@ def paper_slide(prs, meta, idx, total):
         Inches(11.2),
         Inches(0.42),
         meta["title_cn"],
-        size=18,
+        size=20,
         bold=True,
         color=WHITE,
         anchor=MSO_ANCHOR.MIDDLE,
@@ -262,7 +273,7 @@ def paper_slide(prs, meta, idx, total):
         Inches(11.2),
         Inches(0.42),
         meta["title_en"],
-        size=11,
+        size=12,
         color=RGBColor(0xD0, 0xDC, 0xE8),
         anchor=MSO_ANCHOR.TOP,
     )
@@ -270,12 +281,12 @@ def paper_slide(prs, meta, idx, total):
     # left column: 主要内容总结 + 关键结论
     lx, ly, lw = Inches(0.28), Inches(1.18), Inches(6.28)
 
-    add_round(slide, lx, ly, lw, Inches(3.62), WHITE)
+    add_round(slide, lx, ly, lw, Inches(2.55), WHITE)
     add_textbox(
         slide,
-        lx + Inches(0.14),
-        ly + Inches(0.06),
-        lw - Inches(0.26),
+        lx + Inches(0.16),
+        ly + Inches(0.08),
+        lw - Inches(0.28),
         Inches(0.28),
         "主要内容总结",
         size=13,
@@ -284,20 +295,20 @@ def paper_slide(prs, meta, idx, total):
     )
     sum_box = add_textbox(
         slide,
-        lx + Inches(0.14),
-        ly + Inches(0.34),
-        lw - Inches(0.26),
-        Inches(3.18),
+        lx + Inches(0.16),
+        ly + Inches(0.38),
+        lw - Inches(0.28),
+        Inches(2.05),
         meta["summary"],
-        size=12,
+        size=14,
         color=INK,
     )
     for p in sum_box.text_frame.paragraphs:
-        p.line_spacing = 1.08
+        p.line_spacing = 1.15
 
-    add_round(slide, lx, Inches(4.90), lw, Inches(1.55), WHITE)
-    add_textbox(slide, lx + Inches(0.14), Inches(4.94), lw - Inches(0.26), Inches(0.26), "关键结论", size=12, bold=True, color=badge_c)
-    add_bullets(slide, lx + Inches(0.10), Inches(5.18), lw - Inches(0.22), Inches(1.20), meta["findings"], size=12, spacing=4)
+    add_round(slide, lx, Inches(3.86), lw, Inches(2.45), WHITE)
+    add_textbox(slide, lx + Inches(0.16), Inches(3.92), lw - Inches(0.28), Inches(0.28), "关键结论", size=13, bold=True, color=badge_c)
+    add_bullets(slide, lx + Inches(0.12), Inches(4.22), lw - Inches(0.24), Inches(1.95), meta["findings"], size=13, spacing=8)
 
     add_textbox(
         slide,
@@ -399,11 +410,11 @@ PAPERS = [
         problem="靶向蛋白降解药（PROTAC、分子胶）很难在活细胞里把“蛋白略降”放大成稳定、可多路过的筛选读出；常规检测是蛋白越少信号越弱。",
         did="设计 RTA 遗传回路：把目标蛋白（POI）与转录因子抑制剂融合。POI 被降解后抑制剂减少，转录因子被释放。灵敏度由 POI-抑制剂 / 转录因子的比例决定，而不是蛋白绝对量。",
         findings=[
-            "蛋白下降可被放大为 100–1000× 转录输出；不依赖具体降解机制。",
-            "可在单细胞做三路正交回路，也可在细胞池用荧光、存活或 barcode 测序读出。",
-            "用于癌基因靶点筛选，可快速发现新的分子胶降解剂。",
+            "灵敏度由 POI-抑制剂 / 转录因子比例决定，小降幅可放大 100–1000 倍。",
+            "单细胞可走三路正交回路；也可用荧光、存活或 barcode 读出。",
+            "已用于癌基因靶点，筛到新的分子胶降解剂。",
         ],
-        summary="靶向降解药物的瓶颈是：蛋白只降一点时，传统读出信号会更弱，难以做高通量筛选。本文提出比例型转录激活（RTA）：把目标蛋白（POI）与转录因子抑制剂做成融合蛋白，POI 被降解后抑制剂减少，转录因子被释放，把“蛋白变少”反转为“转录变强”。灵敏度由 POI-抑制剂与转录因子的比例决定，而不是蛋白绝对量，因此小幅度下降也能放大成 100–1000 倍输出。该回路不依赖具体降解机制，可在单细胞走三路正交电路，也可在细胞池用荧光、存活或 barcode 测序同时监测多个靶点，并已用于癌基因靶点、发现新的分子胶降解剂。",
+        summary="降解药筛选的痛点是蛋白越少信号越弱。本文把目标蛋白与转录抑制融合：蛋白被降解后转录因子被释放，把“降解”变成可放大的活细胞读出。",
         authors="Melissa A. Gray, Steven M. Banik 等  ·  Stanford",
         cite="Cell 189, 6666–6683 (2026)  ·  DOI: 10.1016/j.cell.2026.08.009",
         fig=FIG / "rta_ga.jpg",
@@ -416,11 +427,11 @@ PAPERS = [
         problem="抗体偶联药物（ADC）疗效是否存在性别差异、机制是什么，此前不清楚；抗原表达相同却出现女性耐药更难解释。",
         did="用 55 例 CLDN18.2+ 胰腺癌人源化 PDX 做“类 II 期临床前试验”，比较雌雄宿主对 CLDN18.2-ADC 的响应，并解析雌激素–GPER1–TRAF6–STING 通路。",
         findings=[
-            "抗原水平相当，但雌性宿主对 CLDN18.2-ADC 显著耐药。",
-            "雌激素经 GPER1 上调 TRAF6，把 STING 从 IRF3/IFN 转到 NF-κB/CXCL1，招募中性粒细胞形成 NET。",
-            "NET 构成带电胞外网，限制抗体接触抗原（功能性抗原屏蔽）。Sivelestat 破坏 NET 后雌性疗效恢复；临床队列中 NET 负荷也与多种抗体疗法疗效差相关。",
+            "55 例人源化 PDX：抗原相当，雌性对 CLDN18.2-ADC 仍耐药。",
+            "通路：雌激素–GPER1–TRAF6，STING 从 IFN 转到 CXCL1/NET。",
+            "西维来司他可恢复疗效；NET 负荷也与多种抗体疗法疗效差相关。",
         ],
-        summary="癌症治疗响应的性别差异机制一直不清楚。团队用 55 例 CLDN18.2 阳性胰腺癌人源化 PDX 做类 II 期临床前试验，发现抗原表达相当，但雌性宿主对 CLDN18.2-ADC 明显耐药。机制上，雌激素经膜受体 GPER1 上调 TRAF6，把肿瘤内在 STING 从 IRF3 介导的 I 型干扰素通路，转到 NF-κB–CXCL1，招募中性粒细胞并形成 NET。NET 构成带电胞外网，挡住抗体接触肿瘤细胞表面抗原，作者称为“功能性抗原屏蔽”，从而在不降低抗原的情况下削弱 ADC 杀伤。NET 抑制剂西维来司他可恢复雌性疗效；三个临床队列中，NET 负荷也与曲妥珠单抗、西妥昔单抗、维恩妥尤单抗疗效差相关。",
+        summary="雌性对 CLDN18.2-ADC 耐药，不是抗原更低，而是雌激素促使 NET 挡住抗体，形成“功能性抗原屏蔽”。",
         authors="闫璟瑞、周天兴、石尚亨、王滨、郝继辉 等  ·  天津医科大学肿瘤医院",
         cite="Cell 189, 6752–6770 (2026)  ·  DOI: 10.1016/j.cell.2026.09.031",
         fig=FIG / "sting_ga.jpg",
@@ -433,11 +444,11 @@ PAPERS = [
         problem="体细胞超突变（SHM）依赖 AID，但 AID 如何特异打到重排后的 VH(D)JH，而不是基因组其他地方，一直是抗体多样性的核心谜题。",
         did="发现多数 VH 基因上游存在古老、截短、已无转座能力的 LINE-1；证明重排 VH 启动子产生编码上游 L1 的长反义 RNA，招募 HUSH 复合体与 AID。",
         findings=[
-            "提出 L1-driven SHM：上游 L1 在顺式招募 HUSH/AID。",
-            "HUSH 条件敲除或去掉 VH 上游 L1 的小鼠，体内 SHM 下降。",
-            "把有转录活性的 L1 插到非 Ig 位点会引发脱靶 SHM。B 细胞把抗转座子沉默机制改造成抗体多样化工具，连接了固有免疫与适应性免疫。",
+            "多数 VH 上游有古老、已无转座能力的 L1，经反义 RNA 招募 HUSH/AID。",
+            "去掉 HUSH 或上游 L1，小鼠体内超突变下降。",
+            "L1 插到非 Ig 位点会引发脱靶突变：固有免疫机制被征用做抗体多样化。",
         ],
-        summary="抗体亲和力成熟依赖生发中心 B 细胞中 AID 对重排 VH(D)JH 的体细胞超突变，但 AID 如何被精确导航到免疫球蛋白可变区，长期未知。作者发现多数 VH 基因上游埋着古老、截短、已无转座能力的 LINE-1。重排后的 VH 启动子产生覆盖上游 L1 的长反义 RNA，由此招募抗转座子沉默复合体 HUSH（MPP8/TASOR/PPHLN1），再把 AID 带到正在转录的 VH(D)JH，形成 L1 驱动的 SHM。HUSH 条件敲除、或工程化去掉 VH 上游 L1 的小鼠，体内超突变下降；把有转录活性的 L1 插到非 Ig 位点则引发脱靶突变。文章把固有免疫的转座子监控，改写成适应性免疫产生抗体多样性的工具。",
+        summary="AID 为何专打免疫球蛋白可变区？答案是 VH 上游的古老 LINE-1：B 细胞借 HUSH 把 AID 精确带到重排后的 VH 基因。",
         authors="Max C. Lauring, Jiguang Wang, Uttiya Basu 等  ·  Columbia / HKUST",
         cite="Cell 189, 6684–6704 (2026)  ·  DOI: 10.1016/j.cell.2026.07.021",
         fig=FIG / "l1_ga.jpg",
@@ -450,11 +461,11 @@ PAPERS = [
         problem="天然病毒衣壳受进化约束，尺寸/形状趋同；临床 LNP 递送效率与靶向性仍有限。能否完全抛开天然衣壳，用生成式蛋白设计从头做 RNA 运输系统？",
         did="把 RFdiffusion 设计的合成蛋白组装体，与膜结合、出芽、RNA 结合结构域融合，筛 >100 种 bottom-up 合成转运载具（STV）。最优为平面 C8 对称的 STV-C8。",
         findings=[
-            "STV-C8 的 RNA 递送效率比常用病毒样颗粒和临床 LNP 高数个数量级。",
-            "可用计算设计的肽结合体编程嗜性；可运载报告 RNA、基因编辑器、抗病毒 RNA、转录因子。",
-            "小鼠近单细胞分辨率 biodistribution 显示安全性良好；在患者来源细胞和猪中递送 Cas9，删除 dystrophin 第 51 外显子（DMD 策略）。",
+            "最优为平面 C8 对称的 STV-C8，效率高于病毒样颗粒和临床 LNP。",
+            "可用设计肽改写嗜性；可运载编辑器、抗病毒 RNA、转录因子。",
+            "小鼠安全性良好；猪和患者细胞中递送 Cas9，删除 dystrophin 外显子 51。",
         ],
-        summary="病毒衣壳经过数十亿年进化，尺寸和形状高度趋同；临床脂质纳米粒（LNP）的效率和可编程性仍有限。作者用生成式蛋白设计（RFdiffusion）做出自然界没有的合成蛋白组装体，再融合膜结合、出芽和 RNA 结合结构域，自下而上构建 100 余种合成转运载具（STV）。筛选显示平面 C8 对称的 STV-C8 最优：RNA 递送效率比常用病毒样颗粒和临床 LNP 高数个数量级，并可用计算设计的肽结合体改写嗜性。STV-C8 能运送报告 RNA、基因编辑器、抗病毒 RNA 和转录因子。小鼠近单细胞 biodistribution 显示短期安全；在患者来源细胞和猪骨骼肌中递送 Cas9，删除 dystrophin 第 51 外显子，作为 DMD 治疗策略验证。",
+        summary="用 AI 设计合成蛋白组装体，自下而上做 RNA 载具，绕开天然衣壳的形状限制，实现高效、可编程递送。",
         authors="Maren Kirstin Schuhmacher, Wolfgang Wurst 等  ·  Helmholtz / TUM",
         cite="Nature 658, 805–814 (2026)  ·  DOI: 10.1038/s41586-026-10952-3",
         fig=FIG / "stv_fig1.png",
@@ -467,11 +478,11 @@ PAPERS = [
         problem="ADC/SMDC 大多走 internalization-to-release（ITR）。约 90% 膜蛋白内吞差，结合后药物很快解离被清除，可用靶点被严重限制。",
         did="提出 binding-to-release（BTR）：配体结合后，连接子被结合口袋里邻近亲核残基直接切断。开发磷(V)–酚交换化学 PhoPEx（受 SuFEx 启发），实现循环稳定、邻近触发释放。",
         findings=[
-            "FAP 的 Tyr745 可触发裂解；无需内吞即可在瘤灶释放可通透细胞的 payload。",
-            "FAP-BTR-SMDC 瘤内 MMAE 暴露（AUC0–120 h）是内吞依赖 SMDC 的 5.9 倍，瘤/血、瘤/肝比显著优于 ITR-SMDC 和 ITR-ADC。",
-            "多种瘤模型接近完全消退；并扩展到 PD-L1 及 mRNA display 得到的 FAP 肽，扩大靶点范围。",
+            "PhoPEx 连接子在 FAP Tyr745 处邻近触发裂解，不走溶酶体。",
+            "瘤内 MMAE 暴露为内吞依赖 SMDC 的 5.9 倍，瘤/血、瘤/肝比更高。",
+            "多种瘤模型接近完全消退；已扩展到 PD-L1 和 FAP 肽。",
         ],
-        summary="传统 ADC/SMDC 走 internalization-to-release：必须内吞进溶酶体才释放药物。大约九成膜蛋白内吞差，结合后共轭物很快解离被清除，可用靶点被严重限制。本文提出 binding-to-release（BTR）：配体一结合，连接子就被靶点口袋里邻近的亲核残基直接切断，释放不依赖内吞。为实现循环稳定又邻近触发，作者开发磷(V)–酚交换化学 PhoPEx。以成纤维细胞激活蛋白 FAP 为例，Tyr745 触发裂解；FAP-BTR-SMDC 瘤内 MMAE 暴露是内吞依赖 SMDC 的 5.9 倍，瘤/血、瘤/肝比显著优于对照 SMDC 和 ADC，多种瘤模型接近完全消退。该框架还扩展到 PD-L1 和 mRNA display 得到的 FAP 肽，扩大了靶向偶联药物可选靶点。",
+        summary="传统偶联药物必须内吞才释放。本文让配体一结合就在口袋里切断连接子，内吞差的靶点也能用。",
         authors="文梓豪、徐梦欣、刘志博 等  ·  北京大学",
         cite="Nature 658, 785–794 (2026)  ·  DOI: 10.1038/s41586-026-10971-0",
         fig=FIG / "btr_fig1.png",
@@ -484,11 +495,11 @@ PAPERS = [
         problem="NDD（自闭、癫痫等）常被认为是发育窗口关闭后不可逆。PV 中间神经元早期受损导致网络过兴奋，成年还能不能把环路和认知拉回来？",
         did="用输入特异的转译组筛选，鉴定成体 CA3/CA2 中“经验依赖 PV 可塑性基因”（XPG）。大量 XPG 在自闭/癫痫/双相/精分中呈单倍不足。在成年 Cntnap2−/− 小鼠的 PV 神经元中上调候选基因 Meis2。",
         findings=[
-            "Meis2 足以恢复经验依赖的 PV 可塑性、兴奋–抑制平衡。",
-            "改善空间/社会记忆、神经元集群与尖波涟漪，并抑制癫痫。",
-            "说明部分发育缺陷在成年仍可逆；关键是对准正确细胞类型的可塑性程序，而不只是“补一个全局信号”。",
+            "成体 CA3/CA2 的 XPG 中，大量基因在自闭/癫痫/精分呈单倍不足。",
+            "成年 Cntnap2−/− 小鼠 PV 神经元上调 Meis2，可恢复可塑性与 E/I 平衡。",
+            "空间/社会记忆、尖波涟漪改善，癫痫被抑制。",
         ],
-        summary="神经发育障碍常被视为发育窗口关闭后不可逆。海马齿状回–CA3/CA2 中的快速放电 PV 中间神经元，通过苔藓纤维前馈抑制精确控制锥体细胞，其经验依赖可塑性一旦在发育期受损，会导致网络过兴奋、癫痫和认知障碍。作者做输入特异的转译组筛选，鉴定成体 CA3/CA2 中经验依赖的 PV 可塑性基因（XPG），其中大量基因在自闭、癫痫、双相和精分中呈单倍不足。在成年 Cntnap2 敲除小鼠的 CA3/CA2 PV 神经元中上调候选基因 Meis2，即可恢复 PV 内在兴奋性、突触连接和抑制性可塑性，改善空间与社会记忆、集群发放和尖波涟漪，并抑制癫痫。说明对准正确细胞类型的可塑性程序，部分发育缺陷在成年仍可逆。",
+        summary="神经发育障碍未必成年不可逆。在海马 PV 中间神经元中恢复经验依赖可塑性，即可改善认知并压住癫痫。",
         authors="Yu-Tzu Shih, Amar Sahay 等  ·  MGH / Harvard",
         cite="Nature 658, 725 附近 (2026)  ·  DOI: 10.1038/s41586-026-10907-8",
         fig=FIG / "pv_fig1.png",
@@ -501,11 +512,11 @@ PAPERS = [
         problem="自组织皮层类器官常被当作人脑发育模型，但放射状胶质祖细胞（RGP）是否仍按体内那套严格时序推进谱系，缺乏单克隆定量证据。",
         did="把 MADM 谱系示踪做到小鼠 ESC 来源皮层类器官，与体内 RGP 定量框架直接对比：增殖潜能、克隆神经元多样性、SCPN vs CPN 命运。",
         findings=[
-            "类器官 RGP 增殖潜能高度可塑，不再是体内那种刻板的时序谱系推进。",
-            "约 1/3 克隆出现命运限制（体内仅约 3%），克隆内皮层投射神经元多样性下降。",
-            "单细胞转录轨迹仍均一，说明缺的是非细胞自主龛位信号。筛药/建模时要分清“药物无效”还是“模型缺时序”。",
+            "类器官 RGP 增殖高度可塑，不再按体内刻板时钟推进。",
+            "约 1/3 克隆命运受限（体内约 3%），克隆内神经元多样性下降。",
+            "转录身份仍均一，缺的是龛位信号；筛药时要分开“药无效”和“模型缺时序”。",
         ],
-        summary="放射状胶质祖细胞（RGP）在体内按定量框架推进：先对称增殖，再转为不对称神经发生，最后才胶质发生，单个克隆按时间顺序产生深层和浅层投射神经元。自组织皮层类器官常被当成人脑模型，但这一时序是否保留缺少单克隆证据。作者把 MADM 谱系示踪做到小鼠 ESC 皮层类器官，与体内直接对比。结果是：类器官 RGP 增殖潜能高度可塑，不再刻板推进；约三分之一克隆出现命运限制（体内约 3%），克隆内 CTIP2 深层与 SATB2 胼胝体投射神经元多样性下降。单细胞转录组却显示 RGP 仍是均一轨迹，说明缺的是非细胞自主龛位信号。神经发生向胶质发生的切换相对保留。用类器官筛药或建模时，必须把“药物无效”和“模型缺时序”分开。",
+        summary="MADM 显示：皮层类器官里的放射状胶质细胞会“报时、不会报分”——谱系时钟与体内脱钩，缺的是龛位信号。",
         authors="Melissa Stouffer, Simon Hippenmeyer 等  ·  ISTA",
         cite="Nature 658, 716–724 (2026)  ·  DOI: 10.1038/s41586-026-10916-7",
         fig=FIG / "rgp_fig1.png",
@@ -518,11 +529,11 @@ PAPERS = [
         problem="人皮层发育需要快速扩增祖细胞并多样化，但人源组织中代谢程序几乎未被系统画过，代谢如何卡细胞命运也不清。",
         did="用原代人皮层 + 皮层类器官做多模态代谢图谱。发现晚期神经发生时糖酵解和磷酸戊糖途径（PPP）意外升高，再用降糖、药理/遗传抑制 PPP、补核糖做干预。",
         findings=[
-            "降糖或抑制 PPP 酶 → 外侧放射状胶质（oRG）和抑制性神经元增多。",
-            "核糖足以挽救 RG 基因表达、类器官细胞组成，并恢复 ATP 与亚牛磺酸。",
-            "PPP 是调控 RG 命运的关键节点；为发育代谢与疾病模型提供资源。",
+            "晚期神经发生时糖酵解和 PPP 意外升高。",
+            "降糖或抑制 G6PD/TKT → oRG 和抑制性神经元增多。",
+            "补核糖可挽救 RG 基因、细胞组成，并恢复 ATP 与亚牛磺酸。",
         ],
-        summary="人皮层早期发育需要祖细胞快速扩增并多样化，但人源组织中的代谢程序几乎没有系统地图。作者用原代人皮层和干细胞来源皮层类器官，做成覆盖五个发育时段的多模态代谢图谱，意外发现晚期神经发生时糖酵解和磷酸戊糖途径（PPP）活性上升。在类器官中降低葡萄糖，会改变细胞组成，外侧放射状胶质（oRG）和抑制性神经元增多；药理或遗传抑制 PPP 酶 G6PD、TKT 可重现这一命运转变。补充核糖足以挽救放射状胶质基因表达、恢复类器官细胞组成，并补回 ATP 与亚牛磺酸。文章把 PPP 定位为调控放射状胶质命运的关键节点，并为继续挖掘其他代谢通路提供资源。",
+        summary="绘制早期人皮层代谢图谱，发现磷酸戊糖途径是放射状胶质命运的开关。",
         authors="Jessenya Mil, Heather Christofk, Aparna Bhaduri 等  ·  UCLA",
         cite="Cell 189, 6810–6828 (2026)  ·  DOI: 10.1016/j.cell.2026.07.023",
         fig=FIG / "metab_ga.jpg",
@@ -535,11 +546,11 @@ PAPERS = [
         problem="非编码变异如何通过胶质细胞特异调控影响神经精神疾病和人特有皮层扩张，缺乏中孕期原代胶质的 3D 表观组图谱。",
         did="FACS 分选中孕期人新皮层 vRG、oRG、OPC、小胶质细胞，整合 RNA-seq、ATAC、WGBS、PLAC-seq（H3K4me3），鉴定细胞类型特异 cCRE，并用转基因小鼠胚胎验证。",
         findings=[
-            "机器学习优先排序 112 个落在胶质 cCRE 的精分风险变异；rs4449074 可在体内破坏预测的 vRG 增强子。",
-            "oRG 的 cCRE 富集人加速区（HAR），部分 HAR 与黑猩猩直向同源序列活性不同，并与神经发育基因互作。",
-            "为胶质来源的疾病与人特异皮层进化提供调控地图。",
+            "分选 vRG、oRG、OPC、小胶质，整合 RNA/ATAC/甲基化/PLAC-seq。",
+            "112 个精分风险位点落在胶质 cCRE；rs4449074 可破坏 vRG 增强子。",
+            "oRG 的 cCRE 富集人加速区，部分活性与黑猩猩直向同源不同。",
         ],
-        summary="人皮层在发育中大幅扩张，非编码变异如何通过胶质细胞特异调控影响神经精神疾病和人特有性状，此前缺少中孕期原代胶质的三维表观组。作者用 FACS 从中孕期人新皮层分选心室放射状胶质（vRG）、外侧放射状胶质（oRG）、少突胶质前体细胞和小胶质细胞，整合 RNA-seq、ATAC、全基因组甲基化和 H3K4me3 PLAC-seq，鉴定各细胞类型候选顺式调控元件（cCRE），并用转基因小鼠胚胎验证增强子活性。机器学习优先排序 112 个落在胶质 cCRE 的精神分裂症风险位点，其中 rs4449074 可在体内破坏预测的 vRG 增强子。oRG 的 cCRE 还富集人加速区，部分与黑猩猩直向同源序列活性不同，并与神经发育基因形成染色质互作。",
+        summary="画出中孕期四种胶质的 3D 表观组，把精神分裂症非编码风险和人加速区落到胶质特异增强子上。",
         authors="Ian R. Jones, Li Wang, Yin Shen, Arnold Kriegstein 等  ·  UCSF",
         cite="Nature 658, 795–804 (2026)  ·  DOI: 10.1038/s41586-026-10987-6",
         fig=FIG / "glia_fig1.png",
@@ -552,11 +563,11 @@ PAPERS = [
         problem="多发性硬化的残疾主要由神经退变驱动，但神经元亚型为何有的耐炎、有的易损，神经元内在机制不清。CFH 一直被当成胞外补体调节蛋白。",
         did="对 MS 供者视网膜神经节细胞做 snRNA-seq，发现 CFH 与内在耐受力强相关。再在 EAE 小鼠中做神经元特异 Cfh 缺失/过表达，并解析亚细胞定位与结构域。",
         findings=[
-            "炎症/氧化应激诱导神经元表达 CFH；它定位内质网，限制 ROS 和脂质过氧化（铁死亡相关）。",
-            "保护依赖 C 端 SCR20，不依赖分泌，也不依赖 C3。",
-            "神经元缺 CFH 使 EAE 更重、视觉更差、神经元丢失更多；胞内 CFH/SCR20 可改善恢复。提出非经典的胞内神经保护功能。",
+            "CFH 定位内质网，限制 ROS 和脂质过氧化，对抗铁死亡。",
+            "保护靠 C 端 SCR20，不依赖分泌，也不依赖 C3。",
+            "神经元缺 CFH 使 EAE 更重；补回胞内 CFH/SCR20 可改善恢复。",
         ],
-        summary="多发性硬化的残疾主要由中枢神经退变驱动。视网膜神经节细胞在 MS 中发生退变，且不同亚型耐受力不同，但神经元内在保护机制不清。补体 H 因子（CFH）一直被当成胞外补体调节蛋白。作者对 MS 与对照供者 RGC 做单核 RNA-seq，发现 CFH 表达与内在耐受力强相关。炎症和氧化应激会诱导视网膜及其他中枢神经元表达 CFH；它定位内质网，限制活性氧和脂质过氧化，对抗神经元铁死亡。保护依赖 C 端 SCR20 结构域，不需要 CFH 分泌，也不依赖 C3。神经元特异敲除 Cfh 使 EAE 更重、视觉更差、运动神经元丢失更多；补充胞内 CFH 或 SCR20 可改善恢复。这把 CFH 重新定义为跨中枢的胞内神经保护因子。",
+        summary="补体 H 因子不只在胞外调补体：它在神经元细胞内抗铁死亡，是炎症中神经元耐受力的内在机制。",
         authors="Christina Mayer, Marcel S. Woo, Manuel A. Friese 等  ·  Hamburg INIMS",
         cite="Nature 658, 765–773 (2026)  ·  DOI: 10.1038/s41586-026-10981-y",
         fig=FIG / "cfh_fig1.png",
@@ -569,11 +580,11 @@ PAPERS = [
         problem="AD 早期突触丢失常被归为小胶质过度吞噬。但胶质吞噬异常究竟是因还是果？神经炎症是否足以解释早期突触失衡？",
         did="在 AD 小鼠中定量胶质对兴奋/抑制突触的吞噬，并用 snRNA-seq 抓住最早出现的“早响应兴奋性神经元（EREN）”，其标志是异位表达 Erbb4。再做兴奋性神经元特异敲除/过表达。",
         findings=[
-            "星形胶质/小胶质增加清除兴奋性突触、减少清除抑制性突触；单有神经炎症不足以解释早期突触丢失。",
-            "兴奋性神经元敲除 Erbb4：网络活动、突触平衡、胶质增生、淀粉样斑块和认知都改善。",
-            "野生型里过表达 Erbb4 即可重现核心 AD 样表型，且不需要斑块；下游依赖 mTOR。人转录组中介分析支持 ERBB4 连接淀粉样→tau→认知下降。",
+            "胶质增加吞兴奋性突触、少吞抑制性突触；炎症本身解释不了早期失衡。",
+            "兴奋性神经元敲除 Erbb4，网络、突触、胶质、斑块和认知都改善。",
+            "野生型过表达即可重现 AD 样表型（无需斑块），下游靠 mTOR。",
         ],
-        summary="阿尔茨海默病早期突触丢失常被归为小胶质过度吞噬，但胶质异常究竟是因还是果并不清楚。作者在 AD 小鼠中发现：星形胶质和小胶质增加清除兴奋性突触、减少清除抑制性突触，提示单有神经炎症不足以解释早期突触失衡。单核转录组抓住一类最早出现的早响应兴奋性神经元（EREN），其标志是异位表达本应主要在抑制性神经元的受体 ERBB4。在 5×FAD 兴奋性神经元中敲除 Erbb4，可纠正网络过兴奋、突触失衡、胶质增生甚至淀粉样斑块，并改善认知。反过来，在野生型兴奋性神经元过表达 Erbb4，无需斑块即可重现核心 AD 样表型，且依赖下游 mTOR。人转录组中介分析支持兴奋性神经元 ERBB4 连接淀粉样病理、tau 传播和认知下降。",
+        summary="AD 早期突触丢失并非胶质“先动手”。兴奋性神经元异位表达 ERBB4 才是驱动因素，胶质吞噬异常是下游。",
         authors="Se Young Lee, Won-Suk Chung 等  ·  KAIST",
         cite="Nature 658, 725 附近 (2026)  ·  DOI: 10.1038/s41586-026-10964-z",
         fig=FIG / "erbb4_fig1.png",
@@ -586,11 +597,11 @@ PAPERS = [
         problem="智能行为要把感觉输入和不断变化的抽象规则整合。树突计算已知参与感觉的自上而下调制，但有没有直接证据表明它参与灵活认知决策？",
         did="训练小鼠做规则切换的听觉灵活分类，用双光子成像同步记录听皮层 L5 端脑外投射（ET）神经元的顶端树突与胞体，再用光遗传抑制树突做因果检验。",
         findings=[
-            "同一神经元内功能分区：树突优先编码推断规则，胞体优先表征感觉；选择信号两边都有。",
-            "抑制树突会损害胞体上规则依赖的选择编码，证明跨区室整合是任务必需的。",
-            "单个皮层神经元内部就能完成“规则 × 感觉 → 选择”，把树突双区室模型从感觉运动拓展到抽象认知。",
+            "听皮层 L5 ET 神经元：树突编规则，胞体编感觉，两边都有选择信号。",
+            "光遗传抑制树突后，胞体上规则依赖的选择编码明显减弱。",
+            "单个神经元内部即可完成“规则 × 感觉 → 选择”。",
         ],
-        summary="灵活智能要把不断变化的抽象规则与即时感觉输入整合。树突计算已知参与感觉的自上而下调制，但缺少它直接参与灵活认知决策的证据。作者训练小鼠做规则切换的听觉灵活分类：类别边界无预警改变，动物必须从奖励反馈中推断隐藏规则。双光子成像同步记录听皮层第 5 层端脑外投射神经元的顶端树突和胞体，发现同一细胞内功能分区——树突优先编码推断出的抽象规则，胞体优先表征感觉刺激，选择相关信号在两个区室都有。光遗传抑制顶端树突后，胞体上规则依赖的选择编码明显减弱，证明跨区室整合是任务必需的。单个皮层神经元内部就能完成“规则 × 感觉 → 选择”，把树突双区室模型从感觉运动拓展到抽象认知。",
+        summary="灵活决策时，同一神经元分工明确：顶端树突编码抽象规则，胞体编码感觉，两者整合才产生选择。",
         authors="张园、徐宁龙 等  ·  中科院脑智卓越中心",
         cite="Science 394, 287 (2026)  ·  DOI: 10.1126/science.adz5323",
         fig=FIG / "dend_scheme.png",
