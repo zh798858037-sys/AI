@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CNS week journal club: 12 papers, one slide each + title/TOC."""
 
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -234,7 +235,29 @@ def add_bullets(slide, l, t, w, h, items, size=13, color=INK, spacing=6):
     return box
 
 
-def paper_slide(prs, meta, idx, total):
+def load_notes():
+    """Speaker notes live in the markdown file; one section per slide."""
+    md = ROOT.parent / "CNS_20261015_逐页演讲稿.md"
+    parts = re.split(r"\n## ", md.read_text(encoding="utf-8"))
+    notes = []
+    for part in parts[1:]:
+        body = part.split("\n", 1)[1].strip()
+        body = re.sub(r"\n---\s*$", "", body).strip()
+        notes.append(body)
+    return notes
+
+
+def set_notes(slide, text):
+    ns = slide.notes_slide
+    tf = ns.notes_text_frame
+    tf.text = text
+    for p in tf.paragraphs:
+        for run in p.runs:
+            run.font.name = FONT_LATIN
+            run.font.size = Pt(14)
+
+
+def paper_slide(prs, meta, idx, total, notes=""):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_rect(slide, 0, 0, W, H, CREAM)
     add_rect(slide, 0, 0, W, Inches(1.08), NAVY)
@@ -335,9 +358,11 @@ def paper_slide(prs, meta, idx, total):
     )
 
     add_footer(slide, idx, total)
+    if notes:
+        set_notes(slide, notes)
 
 
-def title_slide(prs):
+def title_slide(prs, notes=""):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_rect(slide, 0, 0, W, H, NAVY)
     add_rect(slide, 0, Inches(5.9), W, Inches(1.6), NAVY2)
@@ -364,9 +389,11 @@ def title_slide(prs):
         size=13,
         color=RGBColor(0xC4, 0xD4, 0xE6),
     )
+    if notes:
+        set_notes(slide, notes)
 
 
-def toc_slide(prs, papers):
+def toc_slide(prs, papers, notes=""):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_rect(slide, 0, 0, W, H, CREAM)
     add_rect(slide, 0, 0, W, Inches(0.85), NAVY)
@@ -400,6 +427,8 @@ def toc_slide(prs, papers):
             n += 1
         y += Inches(0.08)
     add_footer(slide, 0, 12)
+    if notes:
+        set_notes(slide, notes)
 
 
 PAPERS = [
@@ -614,15 +643,19 @@ def main():
     dend_path = FIG / "dend_scheme.png"
     make_dendrite_schematic(dend_path)
 
+    notes = load_notes()
+    if len(notes) != 2 + len(PAPERS):
+        raise ValueError(f"expected {2 + len(PAPERS)} note sections, got {len(notes)}")
+
     prs = Presentation()
     prs.slide_width = W
     prs.slide_height = H
-    title_slide(prs)
-    toc_slide(prs, PAPERS)
+    title_slide(prs, notes[0])
+    toc_slide(prs, PAPERS, notes[1])
     for i, meta in enumerate(PAPERS, 1):
         if not Path(meta["fig"]).exists():
             raise FileNotFoundError(meta["fig"])
-        paper_slide(prs, meta, i, len(PAPERS))
+        paper_slide(prs, meta, i, len(PAPERS), notes[i + 1])
     prs.save(OUT)
     root_copy = ROOT.parent / OUT.name
     root_copy.write_bytes(OUT.read_bytes())
